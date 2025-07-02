@@ -117,35 +117,35 @@ uploaded_file = st.sidebar.file_uploader("Upload your file (csv)", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
-    st.header("1️⃣ Select Features and Target")
-    with st.expander("📋 Column Selection"):
+    st.header("1. Select Features and Target")
+    with st.expander("Column Selection"):
         cols = df.columns.tolist()
-        selected_features = st.multiselect("🧬 Select Feature Columns", options=cols)
-        selected_target = st.selectbox("🎯 Select Target Column", options=[col for col in cols if col not in selected_features])
+        selected_features = st.multiselect("Select Feature Columns", options=cols)
+        selected_target = st.selectbox("Select Target Column", options=[col for col in cols if col not in selected_features])
 
     if selected_features and selected_target:
         X = df[selected_features]
         y = df[selected_target]
 
-        st.header("2️⃣ Exploratory Data Analysis")
+        st.header("2. Exploratory Data Analysis")
 
-        st.subheader("🧮 Summary Statistics with Skew & Kurtosis")
+        st.subheader("2. Summary Statistics with Skew & Kurtosis")
         summary = df[selected_features + [selected_target]].describe().T
         summary['skew'] = df[selected_features + [selected_target]].skew()
         summary['kurtosis'] = df[selected_features + [selected_target]].kurtosis()
         st.dataframe(summary.round(3))
 
-        st.subheader("📊 Scatter Plots + Histograms")
+        st.subheader("Scatter Plots + Histograms")
         plots = plot_pairwise_corr_with_hist(df[selected_features + [selected_target]], selected_target)
         for fig in plots:
             st.pyplot(fig)
 
-        st.subheader("📈 Correlation Heatmap")
+        st.subheader("Correlation Heatmap")
         fig, ax = plt.subplots()
         sns.heatmap(df[selected_features + [selected_target]].corr(), annot=True, cmap='coolwarm', ax=ax)
         st.pyplot(fig)
 
-        st.header("3️⃣ Model Training and Evaluation")
+        st.header("3. Model Training and Evaluation")
         model_choice = st.radio("Select Model", ["Random Forest", "XGBoost"])
         eval_method = st.radio("Evaluation Method", ["Train-Test Split", "K-Fold Cross-Validation"])
 
@@ -168,10 +168,10 @@ if uploaded_file:
             result_df = pd.DataFrame([train_metrics, test_metrics],
                                      columns=["MAE", "MSE", "RMSE", "R²", "A20 Index"],
                                      index=["Train", "Test"])
-            st.subheader("📉 Model Performance")
+            st.subheader("Model Performance")
             st.dataframe(result_df.round(4))
                     # Add Predicted vs Measured Plot
-            st.subheader("🎯 Predicted vs. Measured")
+            st.subheader("Predicted vs. Measured")
 
             # Call the function you provided
             st.markdown("##### 🔵 Training Set")
@@ -231,11 +231,11 @@ if uploaded_file:
 
             # Display performance
             results_df = pd.DataFrame(results, index=["MAE", "MSE", "RMSE", "R²", "A20 Index"]).T
-            st.subheader("📉 Model Performance")
+            st.subheader("Model Performance")
             st.dataframe(results_df.round(4))
 
             # Display Predicted vs Measured
-            st.subheader("🎯 Predicted vs. Measured")
+            st.subheader("Predicted vs. Measured")
 
             st.markdown("##### 🔵 Training Set (CV Aggregated)")
             plot_predicted_vs_measured_separately(np.array(all_train_true), np.array(all_train_pred), "Train", model_choice, selected_target)
@@ -248,12 +248,12 @@ if uploaded_file:
                 plot_predicted_vs_measured_separately(y_holdout, y_holdout_pred, "Test (Holdout)", model_choice, selected_target)
 
         # SHAP + PDP Section
-        st.header("4️⃣ Model Interpretation")
+        st.header("4. Model Interpretation")
         
-        show_shap = st.checkbox("🔍 Show SHAP Plots (Global & Local)")
-        show_pdp = st.checkbox("📉 Show Partial Dependence Plot (PDP)")
+        show_shap = st.checkbox("4.1. Show SHAP Plots (Global & Local)")
+        show_pdp = st.checkbox("4.2. Show Partial Dependence Plot (PDP)")
         if show_shap:
-            with st.expander("📊 SHAP Waterfall + Beeswarm Plots"):
+            with st.expander("SHAP Waterfall + Beeswarm Plots"):
                 explainer = shap.Explainer(model)
                 try:
                     shap_values = explainer(X_test if eval_method == "Train-Test Split" else X_holdout if use_holdout else X_main)
@@ -277,3 +277,33 @@ if uploaded_file:
 
     else:
         st.warning("Please select both feature(s) and a target column.")
+
+    # 5️⃣ Final Model Testing on New Dataset
+    st.header("5. Test Final Model on New Dataset")
+
+    if 'model' in locals():
+        new_data_file = st.file_uploader("Upload a new dataset for prediction (CSV)", type=["csv"], key="new_dataset")
+
+        if new_data_file:
+            new_df = pd.read_csv(new_data_file)
+            missing_cols = [col for col in selected_features + [selected_target] if col not in new_df.columns]
+
+            if missing_cols:
+                st.warning(f"Missing required columns in uploaded file: {missing_cols}")
+            else:
+                new_X = new_df[selected_features]
+                new_y_true = new_df[selected_target]
+                new_y_pred = model.predict(new_X)
+
+                # Compute metrics
+                new_metrics = get_metrics(new_y_true, new_y_pred)
+                metrics_df = pd.DataFrame([new_metrics], columns=["MAE", "MSE", "RMSE", "R²", "A20 Index"], index=["New Dataset"])
+                st.subheader("Performance on New Dataset")
+                st.dataframe(metrics_df.round(4))
+
+                # Predicted vs Measured Plot
+                st.subheader("Predicted vs. Measured (New Dataset)")
+                plot_predicted_vs_measured_separately(new_y_true, new_y_pred, "New", model_choice, selected_target)
+
+    else:
+        st.info("Please train a model in Section 3 before testing it on new data.")
