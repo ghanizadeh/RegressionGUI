@@ -2,82 +2,67 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import butter, filtfilt, savgol_filter
-import pywt
+import scipy.signal as signal
+from scipy.signal import savgol_filter, butter, filtfilt
 
+# Section 0: Preprocessing
 st.header("0. Preprocessing")
 
-uploaded_file = st.file_uploader("Upload your signal dataset (CSV)", type=["csv"], key="preprocessing")
+uploaded_signal_file = st.file_uploader("Upload signal dataset (CSV)", type=["csv"], key="signal_data")
 
-if uploaded_file:
-    df_raw = pd.read_csv(uploaded_file)
+if uploaded_signal_file:
+    raw_df = pd.read_csv(uploaded_signal_file)
     st.subheader("Raw Signal Preview")
-    st.dataframe(df_raw.head())
+    st.dataframe(raw_df.head())
 
-    # Choose time window for plotting
-    st.subheader("Plot Signals")
-    sensor_cols = [col for col in df_raw.columns if col.startswith("Sensor")]
-    selected_signals = st.multiselect("Select signal columns to plot", sensor_cols, default=sensor_cols[:3])
-    max_rows = st.slider("Number of rows to plot (time steps)", 50, min(2000, len(df_raw)), 200)
+    time_col = st.selectbox("Select Timestamp Column", options=raw_df.columns, index=0)
+    signal_cols = st.multiselect("Select Signal Columns", options=[col for col in raw_df.columns if col != time_col])
 
-    if selected_signals:
-        fig, ax = plt.subplots(figsize=(12, 5))
-        for col in selected_signals:
-            ax.plot(df_raw[col].iloc[:max_rows], label=col)
-        ax.set_title("Raw Signals")
-        ax.set_xlabel("Time Index")
-        ax.set_ylabel("Signal Value")
-        ax.legend()
-        st.pyplot(fig)
+    if signal_cols:
+        fig_raw, ax_raw = plt.subplots(figsize=(10, 4))
+        for col in signal_cols:
+            ax_raw.plot(raw_df[time_col], raw_df[col], label=col)
+        ax_raw.set_title("Raw Signals")
+        ax_raw.legend()
+        st.pyplot(fig_raw)
 
-    st.subheader("Apply Noise Reduction")
-    apply_butter = st.checkbox("Removes high-frequency noise (Butterworth)")
-    apply_ma = st.checkbox("Moving Average Filter")
-    ma_window_sec = st.slider("Moving Average Window (seconds)", 1, 30, 10) if apply_ma else None
-    apply_savgol = st.checkbox("Savitzky-Golay Filter")
-    apply_wavelet = st.checkbox("Wavelet Denoising")
+        # Checkboxes for filtering
+        apply_butter = st.checkbox("Butterworth Low-Pass Filter (removes high-frequency noise)")
+        apply_moving_avg = st.checkbox("Moving Average Filter")
+        apply_savgol = st.checkbox("Savitzky-Golay Filter")
 
-    df_processed = df_raw.copy()
+        # Filtering setup
+        filtered_df = raw_df.copy()
 
-    def butter_lowpass_filter(data, cutoff=1.0, fs=60.0, order=5):
-        nyq = 0.5 * fs
-        normal_cutoff = cutoff / nyq
-        b, a = butter(order, normal_cutoff, btype='low', analog=False)
-        return filtfilt(b, a, data)
-
-    def wavelet_denoise(signal, wavelet='db4', level=1):
-        coeffs = pywt.wavedec(signal, wavelet, level=level)
-        sigma = np.median(np.abs(coeffs[-level])) / 0.6745
-        uthresh = sigma * np.sqrt(2 * np.log(len(signal)))
-        coeffs[1:] = [pywt.threshold(c, value=uthresh, mode='soft') for c in coeffs[1:]]
-        return pywt.waverec(coeffs, wavelet)[:len(signal)]
-
-    # Apply filters
-    for col in sensor_cols:
-        signal = df_raw[col].values
         if apply_butter:
-            signal = butter_lowpass_filter(signal)
-        if apply_ma:
-            window_size = int(ma_window_sec * 60)
-            signal = pd.Series(signal).rolling(window=window_size, min_periods=1).mean().values
+            cutoff = st.number_input("Butterworth cutoff frequency (Hz)", min_value=0.01, value=0.1, step=0.01)
+            fs = st.number_input("Sampling frequency (Hz)", min_value=1.0, value=60.0, step=1.0)
+            order = 2
+            b, a = butter(order, cutoff / (0.5 * fs), btype='low')
+            for col in signal_cols:
+                filtered_df[col] = filtfilt(b, a, filtered_df[col])
+
+        if apply_moving_avg:
+            window_sec = st.slider("Moving average window (seconds)", 1, 20, 5)
+            fs = st.number_input("Sampling frequency for moving average (Hz)", min_value=1.0, value=60.0, step=1.0, key='fs_ma')
+            window_size = int(window_sec * fs)
+            for col in signal_cols:
+                filtered_df[col] = filtered_df[col].rolling(window_size, min_periods=1, center=True).mean()
+
         if apply_savgol:
-            try:
-                signal = savgol_filter(signal, window_length=11, polyorder=2)
-            except:
-                pass
-        if apply_wavelet:
-            signal = wavelet_denoise(signal)
-        df_processed[col] = signal
+            window_length = st.slider("Savitzky-Golay window length (odd number)", 5, 101, 15, step=2)
+            polyorder = st.slider("Polynomial order", 1, 5, 2)
+            for col in signal_cols:
+                filtered_df[col] = savgol_filter(filtered_df[col], window_length, polyorder)
 
-    if apply_butter or apply_ma or apply_savgol or apply_wavelet:
-        st.subheader("Processed Signals")
-        fig, ax = plt.subplots(figsize=(12, 5))
-        for col in selected_signals:
-            ax.plot(df_processed[col].iloc[:max_rows], label=f"{col} (Processed)")
-        ax.set_title("Processed Signals")
-        ax.set_xlabel("Time Index")
-        ax.set_ylabel("Signal Value")
-        ax.legend()
-        st.pyplot(fig)
+        # Plot filtered
+        st.subheader("Filtered Signals")
+        fig_filtered, ax_filtered = plt.subplots(figsize=(10, 4))
+        for col in signal_cols:
+            ax_filtered.plot(filtered_df[time_col], filtered_df[col], label=col)
+        ax_filtered.set_title("Filtered Signals")
+        ax_filtered.legend()
+        st.pyplot(fig_filtered)
 
-        st.download_button("Download Processed CSV", df_processed.to_csv(index=False), file_name="processed_signals.csv")
+        # Download filtered data
+        st.download_button("Download Filtered Data", data=filtered_df.to_csv(index=False), file_name="filtered_signals.csv")
