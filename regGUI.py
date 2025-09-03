@@ -128,15 +128,15 @@ if uploaded_file:
         y = df[selected_target]
 
         st.header("2. Exploratory Data Analysis")
-
-        st.subheader("2. Summary Statistics with Skew & Kurtosis")
-        summary = df[selected_features + [selected_target]].describe().T
-        summary['skew'] = df[selected_features + [selected_target]].skew()
-        summary['kurtosis'] = df[selected_features + [selected_target]].kurtosis()
-        st.dataframe(summary.round(3))
-
-        st.subheader("Scatter Plots + Histograms")
         with st.expander("Another Expander", expanded=True):
+            st.subheader("2. Summary Statistics with Skew & Kurtosis")
+            summary = df[selected_features + [selected_target]].describe().T
+            summary['skew'] = df[selected_features + [selected_target]].skew()
+            summary['kurtosis'] = df[selected_features + [selected_target]].kurtosis()
+            st.dataframe(summary.round(3))
+    
+            st.subheader("Scatter Plots + Histograms")
+        
             plots = plot_pairwise_corr_with_hist(df[selected_features + [selected_target]], selected_target)
             for fig in plots:
                 st.pyplot(fig)
@@ -341,5 +341,6 @@ if uploaded_file:
 
     else:
         st.info("Please train a model in Section 3 before testing it on new data.")
+
 
 
