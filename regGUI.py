@@ -128,7 +128,7 @@ if uploaded_file:
         y = df[selected_target]
 
         st.header("2. Exploratory Data Analysis")
-        with st.expander("Another Expander", expanded=True):
+        with st.expander("Show/hide EDM", expanded=True):
             st.subheader("2. Summary Statistics with Skew & Kurtosis")
             summary = df[selected_features + [selected_target]].describe().T
             summary['skew'] = df[selected_features + [selected_target]].skew()
@@ -341,6 +341,7 @@ if uploaded_file:
 
     else:
         st.info("Please train a model in Section 3 before testing it on new data.")
+
 
 
 
