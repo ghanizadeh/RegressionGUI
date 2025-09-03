@@ -136,43 +136,44 @@ if uploaded_file:
         st.dataframe(summary.round(3))
 
         st.subheader("Scatter Plots + Histograms")
-        plots = plot_pairwise_corr_with_hist(df[selected_features + [selected_target]], selected_target)
-        for fig in plots:
+        with st.expander("Another Expander", expanded=True):
+            plots = plot_pairwise_corr_with_hist(df[selected_features + [selected_target]], selected_target)
+            for fig in plots:
+                st.pyplot(fig)
+    
+            st.subheader("Correlation Heatmap")
+            #fig, ax = plt.subplots()
+            #sns.heatmap(df[selected_features + [selected_target]].corr(), annot=True, cmap='coolwarm', ax=ax)
+            #st.pyplot(fig)
+    
+            # Compute correlation matrix
+            corr = df[selected_features + [selected_target]].corr()
+            # Create a mask for the upper triangle
+            mask = np.triu(np.ones_like(corr, dtype=bool))
+            
+            # Bigger figure
+            fig, ax = plt.subplots(figsize=(10, 8))  
+            
+            # Heatmap
+            sns.heatmap(
+                corr,
+                mask=mask,
+                annot=True,
+                fmt=".2f",           # Limit decimals
+                cmap="coolwarm",
+                cbar=True,
+                ax=ax,
+                square=True,
+                linewidths=0.5,
+                annot_kws={"size": 9}  # smaller text inside cells
+            )
+            
+            # Rotate x-axis labels and move them to top
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="left")
+            ax.xaxis.set_ticks_position('top')
+            ax.xaxis.set_label_position('top')
+            
             st.pyplot(fig)
-
-        st.subheader("Correlation Heatmap")
-        #fig, ax = plt.subplots()
-        #sns.heatmap(df[selected_features + [selected_target]].corr(), annot=True, cmap='coolwarm', ax=ax)
-        #st.pyplot(fig)
-
-        # Compute correlation matrix
-        corr = df[selected_features + [selected_target]].corr()
-        # Create a mask for the upper triangle
-        mask = np.triu(np.ones_like(corr, dtype=bool))
-        
-        # Bigger figure
-        fig, ax = plt.subplots(figsize=(10, 8))  
-        
-        # Heatmap
-        sns.heatmap(
-            corr,
-            mask=mask,
-            annot=True,
-            fmt=".2f",           # Limit decimals
-            cmap="coolwarm",
-            cbar=True,
-            ax=ax,
-            square=True,
-            linewidths=0.5,
-            annot_kws={"size": 9}  # smaller text inside cells
-        )
-        
-        # Rotate x-axis labels and move them to top
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="left")
-        ax.xaxis.set_ticks_position('top')
-        ax.xaxis.set_label_position('top')
-        
-        st.pyplot(fig)
 
 
 
@@ -340,4 +341,5 @@ if uploaded_file:
 
     else:
         st.info("Please train a model in Section 3 before testing it on new data.")
+
 
