@@ -141,10 +141,43 @@ if uploaded_file:
             st.pyplot(fig)
 
         st.subheader("Correlation Heatmap")
-        fig, ax = plt.subplots()
-        sns.heatmap(df[selected_features + [selected_target]].corr(), annot=True, cmap='coolwarm', ax=ax)
+        #fig, ax = plt.subplots()
+        #sns.heatmap(df[selected_features + [selected_target]].corr(), annot=True, cmap='coolwarm', ax=ax)
+        #st.pyplot(fig)
+
+        # Compute correlation matrix
+        corr = df[selected_features + [selected_target]].corr()
+        # Create a mask for the upper triangle
+        mask = np.triu(np.ones_like(corr, dtype=bool))
+        
+        # Bigger figure
+        fig, ax = plt.subplots(figsize=(10, 8))  
+        
+        # Heatmap
+        sns.heatmap(
+            corr,
+            mask=mask,
+            annot=True,
+            fmt=".2f",           # Limit decimals
+            cmap="coolwarm",
+            cbar=True,
+            ax=ax,
+            square=True,
+            linewidths=0.5,
+            annot_kws={"size": 9}  # smaller text inside cells
+        )
+        
+        # Rotate x-axis labels and move them to top
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="left")
+        ax.xaxis.set_ticks_position('top')
+        ax.xaxis.set_label_position('top')
+        
         st.pyplot(fig)
 
+
+
+
+        
         st.header("3. Model Training and Evaluation")
         model_choice = st.radio("Select Model", ["Random Forest", "XGBoost"])
         eval_method = st.radio("Evaluation Method", ["Train-Test Split", "K-Fold Cross-Validation"])
@@ -307,3 +340,4 @@ if uploaded_file:
 
     else:
         st.info("Please train a model in Section 3 before testing it on new data.")
+
