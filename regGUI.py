@@ -156,7 +156,8 @@ if uploaded_file:
         # ================= Model =================
         st.header("3. Model Training and Evaluation")
         model_choice = st.radio("Select Model", ["Random Forest", "XGBoost", "GPR"])
-        
+        eval_method = st.radio("Evaluation Method", ["Train-Test Split", "K-Fold Cross-Validation"])
+
         if model_choice == "Random Forest":
             base_model = RandomForestRegressor(random_state=42)
         elif model_choice == "XGBoost":
@@ -166,7 +167,6 @@ if uploaded_file:
             kernel = C(1.0, (1e-3, 1e3)) * RBF(length_scale=1.0)
             base_model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=5, random_state=42)
         
-        eval_method = st.radio("Evaluation Method", ["Train-Test Split", "K-Fold Cross-Validation"])
 
         final_model = None
 
@@ -294,4 +294,5 @@ if uploaded_file:
                     st.subheader("Predicted vs. Measured (New Dataset)")
                     plot_predicted_vs_measured_separately(new_y_true, new_y_pred,
                                                           "New", model_choice, selected_target)
+
 
