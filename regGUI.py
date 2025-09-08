@@ -6,6 +6,8 @@ import seaborn as sns
 import shap
 import xgboost as xgb
 import streamlit.components.v1 as components
+from sklearn.preprocessing import StandardScaler
+
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split, KFold
@@ -191,7 +193,14 @@ if uploaded_file:
         if eval_method == "Train-Test Split":
             test_size = st.slider("Test Size (%)", 10, 50, 25) / 100
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+        
+            # Standardization
+            scaler = StandardScaler()
+            X_train = scaler.fit_transform(X_train)
+            X_test = scaler.transform(X_test)
+        
             model = base_model.fit(X_train, y_train)
+
 
             y_train_pred = model.predict(X_train)
             y_test_pred = model.predict(X_test)
@@ -232,8 +241,14 @@ if uploaded_file:
             for train_idx, val_idx in kf.split(X_main):
                 X_train, X_val = X_main.iloc[train_idx], X_main.iloc[val_idx]
                 y_train, y_val = y_main.iloc[train_idx], y_main.iloc[val_idx]
-
+            
+                # Standardization inside each fold
+                scaler = StandardScaler()
+                X_train = scaler.fit_transform(X_train)
+                X_val = scaler.transform(X_val)
+            
                 model = base_model.fit(X_train, y_train)
+
 
                 y_train_pred = model.predict(X_train)
                 y_val_pred = model.predict(X_val)
@@ -326,8 +341,13 @@ if uploaded_file:
                 st.warning(f"Missing required columns in uploaded file: {missing_cols}")
             else:
                 new_X = new_df[selected_features]
+                
+                # Standardize using the SAME scaler
+                new_X = scaler.transform(new_X)
+                
                 new_y_true = new_df[selected_target]
                 new_y_pred = model.predict(new_X)
+
 
                 # Compute metrics
                 new_metrics = get_metrics(new_y_true, new_y_pred)
@@ -341,6 +361,7 @@ if uploaded_file:
 
     else:
         st.info("Please train a model in Section 3 before testing it on new data.")
+
 
 
 
