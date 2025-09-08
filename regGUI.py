@@ -7,6 +7,8 @@ import shap
 import xgboost as xgb
 import streamlit.components.v1 as components
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+
 
 
 from sklearn.ensemble import RandomForestRegressor
@@ -190,38 +192,41 @@ if uploaded_file:
         else:
             base_model = xgb.XGBRegressor(random_state=42)
 
+        # -------------------
+        # Model Training
+        # -------------------
         if eval_method == "Train-Test Split":
             test_size = st.slider("Test Size (%)", 10, 50, 25) / 100
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
         
-            # Standardization
-            scaler = StandardScaler()
-            X_train = scaler.fit_transform(X_train)
-            X_test = scaler.transform(X_test)
+            # Build pipeline: StandardScaler + Model
+            pipeline = Pipeline([
+                ("scaler", StandardScaler()),
+                ("model", base_model)
+            ])
         
-            model = base_model.fit(X_train, y_train)
-
-
-            y_train_pred = model.predict(X_train)
-            y_test_pred = model.predict(X_test)
-
+            pipeline.fit(X_train, y_train)
+        
+            y_train_pred = pipeline.predict(X_train)
+            y_test_pred = pipeline.predict(X_test)
+        
             train_metrics = get_metrics(y_train, y_train_pred)
             test_metrics = get_metrics(y_test, y_test_pred)
-
+        
             result_df = pd.DataFrame([train_metrics, test_metrics],
                                      columns=["MAE", "MSE", "RMSE", "R²", "A20 Index"],
                                      index=["Train", "Test"])
             st.subheader("Model Performance")
             st.dataframe(result_df.round(4))
-                    # Add Predicted vs Measured Plot
+        
+            # Plots
             st.subheader("Predicted vs. Measured")
-
-            # Call the function you provided
             st.markdown("##### 🔵 Training Set")
             plot_predicted_vs_measured_separately(y_train, y_train_pred, "Train", model_choice, selected_target)
-
             st.markdown("##### 🟠 Testing Set")
             plot_predicted_vs_measured_separately(y_test, y_test_pred, "Test", model_choice, selected_target)
+        
+            final_model = pipeline  # Save for later (new dataset)
         else:  # K-Fold
             k = st.slider("Number of Folds (K)", 2, 10, 5)
             use_holdout = st.checkbox("Include Hold-out Test Set?")
@@ -349,6 +354,7 @@ if uploaded_file:
                 new_y_pred = model.predict(new_X)
 
 
+
                 # Compute metrics
                 new_metrics = get_metrics(new_y_true, new_y_pred)
                 metrics_df = pd.DataFrame([new_metrics], columns=["MAE", "MSE", "RMSE", "R²", "A20 Index"], index=["New Dataset"])
@@ -361,6 +367,7 @@ if uploaded_file:
 
     else:
         st.info("Please train a model in Section 3 before testing it on new data.")
+
 
 
 
