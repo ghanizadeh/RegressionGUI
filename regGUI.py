@@ -287,13 +287,14 @@ if uploaded_file:
                     new_metrics = get_metrics(new_y_true, new_y_pred)
                     metrics_df = pd.DataFrame([new_metrics],
                                               columns=["MAE", "MSE", "RMSE", "R²", "A20 Index"],
-                                              index=["new_data_file.name"])
+                                              index=[new_data_file.name])
                     st.subheader("Performance on New Dataset")
                     st.dataframe(metrics_df.round(4))
 
                     st.subheader("Predicted vs. Measured (New Dataset)")
                     plot_predicted_vs_measured_separately(new_y_true, new_y_pred,
                                                           "New", model_choice, selected_target)
+
 
 
 
