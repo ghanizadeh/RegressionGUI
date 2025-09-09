@@ -293,7 +293,8 @@ if uploaded_file:
 
                     st.subheader("Predicted vs. Measured (New Dataset)")
                     plot_predicted_vs_measured_separately(new_y_true, new_y_pred,
-                                                          "New", model_choice, selected_target)
+                                                          new_data_file.name, model_choice, selected_target)
+
 
 
 
