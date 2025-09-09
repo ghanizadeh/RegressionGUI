@@ -292,8 +292,18 @@ if uploaded_file:
                     st.dataframe(metrics_df.round(4))
 
                     st.subheader("Predicted vs. Measured (New Dataset)")
-                    plot_predicted_vs_measured_separately(new_y_true, new_y_pred,
-                                                          new_data_file.name, model_choice, selected_target)
+                    import os
+                    
+                    file_label = os.path.splitext(new_data_file.name)[0]
+                    
+                    plot_predicted_vs_measured_separately(
+                        new_y_true,
+                        new_y_pred,
+                        file_label,         # filename without extension
+                        model_choice,
+                        selected_target
+)
+
 
 
 
