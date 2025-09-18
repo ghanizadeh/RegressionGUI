@@ -272,6 +272,14 @@ if uploaded_file:
                         feature_names=feature_names
                     )
                     shap_values = explainer(X_scaled, check_additivity=False)
+                    # Beeswarm plot with correct feature names
+                    fig = plt.figure()
+                    shap.plots.beeswarm(shap_values, show=False)
+                    st.pyplot(fig)
+
+                    # Optional: Waterfall plot for the first sample
+                    fig = plt.figure()
+                    shap.plots.waterfall(shap_values[0], show=False)
                     st.pyplot(fig)
                 except Exception as e:
                     st.warning(f"SHAP failed: {e}")
@@ -310,6 +318,7 @@ if uploaded_file:
                         model_choice,
                         selected_target
 )
+
 
 
 
