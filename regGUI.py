@@ -261,10 +261,17 @@ if uploaded_file:
         if show_shap and final_model:
             with st.expander("SHAP Waterfall + Beeswarm Plots"):
                 try:
-                    explainer = shap.Explainer(final_model["model"], final_model["scaler"].transform(X))
-                    shap_values = explainer(final_model["scaler"].transform(X))
-                    fig = plt.figure()
-                    shap.plots.beeswarm(shap_values, show=False)
+                    feature_names = selected_features
+                    # Transform X using scaler
+                    X_scaled = final_model["scaler"].transform(X)
+
+                    # Create explainer with feature names
+                    explainer = shap.Explainer(
+                        final_model["model"],
+                        X_scaled,
+                        feature_names=feature_names
+                    )
+                    shap_values = explainer(X_scaled, check_additivity=False)
                     st.pyplot(fig)
                 except Exception as e:
                     st.warning(f"SHAP failed: {e}")
@@ -303,6 +310,7 @@ if uploaded_file:
                         model_choice,
                         selected_target
 )
+
 
 
 
